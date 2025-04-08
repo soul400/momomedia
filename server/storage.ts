@@ -1,8 +1,16 @@
 import { users, type User, type InsertUser, media, type Media, type InsertMedia, supporters, type Supporter, type InsertSupporter } from "@shared/schema";
-import createMemoryStore from "memorystore";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
+import { Pool } from "pg";
 
-const MemoryStore = createMemoryStore(session);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+// استخدام connect-pg-simple لتخزين جلسات في PostgreSQL
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -30,128 +38,126 @@ export interface IStorage {
   sessionStore: session.SessionStore;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private media: Map<number, Media>;
-  private supporters: Map<number, Supporter>;
-  private userId: number;
-  private mediaId: number;
-  private supporterId: number;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.users = new Map();
-    this.media = new Map();
-    this.supporters = new Map();
-    this.userId = 1;
-    this.mediaId = 1;
-    this.supporterId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
     });
     
-    // Create default admin user
-    this.createUser({
-      username: "admin",
-      password: "adminpassword", // This will be hashed in auth.ts
-      isAdmin: true
+    // التحقق مما إذا كان المستخدم الإداري موجوداً بالفعل
+    this.getUserByUsername("admin").then(user => {
+      if (!user) {
+        // إنشاء مستخدم إداري افتراضي إذا لم يكن موجوداً
+        this.createUser({
+          username: "admin",
+          password: "adminpassword", // سيتم تشفيره في auth.ts
+          isAdmin: true
+        });
+      }
+    }).catch(err => {
+      console.error("Error checking for admin user:", err);
     });
   }
 
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   // Media methods
   async getAllMedia(): Promise<Media[]> {
-    return Array.from(this.media.values());
+    return await db.select().from(media);
   }
 
   async getMediaById(id: number): Promise<Media | undefined> {
-    return this.media.get(id);
+    const [mediaItem] = await db.select().from(media).where(eq(media.id, id));
+    return mediaItem;
   }
 
   async getMediaByYearMonth(year: number, month: number): Promise<Media[]> {
-    return Array.from(this.media.values()).filter(
-      (media) => media.year === year && media.month === month
+    return await db.select().from(media).where(
+      and(
+        eq(media.year, year),
+        eq(media.month, month)
+      )
     );
   }
 
   async getFeaturedMedia(): Promise<Media[]> {
-    return Array.from(this.media.values()).filter(
-      (media) => media.isFeatured
-    );
+    return await db.select().from(media).where(eq(media.isFeatured, true));
   }
 
   async createMedia(insertMedia: InsertMedia): Promise<Media> {
-    const id = this.mediaId++;
-    const media: Media = { ...insertMedia, id, views: 0 };
-    this.media.set(id, media);
-    return media;
+    const [mediaItem] = await db.insert(media).values({
+      ...insertMedia,
+      views: 0
+    }).returning();
+    return mediaItem;
   }
 
   async updateMedia(id: number, updateData: Partial<Media>): Promise<Media | undefined> {
-    const media = this.media.get(id);
-    if (!media) {
-      return undefined;
-    }
-    
-    const updatedMedia = { ...media, ...updateData };
-    this.media.set(id, updatedMedia);
+    const [updatedMedia] = await db.update(media)
+      .set(updateData)
+      .where(eq(media.id, id))
+      .returning();
     return updatedMedia;
   }
 
   async deleteMedia(id: number): Promise<boolean> {
-    return this.media.delete(id);
+    const result = await db.delete(media).where(eq(media.id, id));
+    return result.count > 0;
   }
 
   // Supporter methods
   async getAllSupporters(): Promise<Supporter[]> {
-    return Array.from(this.supporters.values());
+    return await db.select().from(supporters);
   }
 
   async getTopSupporters(year: number, month: number, limit: number): Promise<Supporter[]> {
-    return Array.from(this.supporters.values())
-      .filter((supporter) => supporter.year === year && supporter.month === month)
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, limit);
+    return await db.select().from(supporters)
+      .where(
+        and(
+          eq(supporters.year, year),
+          eq(supporters.month, month)
+        )
+      )
+      .orderBy(supporters.rank)
+      .limit(limit);
   }
 
   async createSupporter(insertSupporter: InsertSupporter): Promise<Supporter> {
-    const id = this.supporterId++;
-    const supporter: Supporter = { ...insertSupporter, id };
-    this.supporters.set(id, supporter);
+    const [supporter] = await db.insert(supporters)
+      .values(insertSupporter)
+      .returning();
     return supporter;
   }
 
   async updateSupporter(id: number, updateData: Partial<Supporter>): Promise<Supporter | undefined> {
-    const supporter = this.supporters.get(id);
-    if (!supporter) {
-      return undefined;
-    }
-    
-    const updatedSupporter = { ...supporter, ...updateData };
-    this.supporters.set(id, updatedSupporter);
+    const [updatedSupporter] = await db.update(supporters)
+      .set(updateData)
+      .where(eq(supporters.id, id))
+      .returning();
     return updatedSupporter;
   }
 
   async deleteSupporter(id: number): Promise<boolean> {
-    return this.supporters.delete(id);
+    const result = await db.delete(supporters).where(eq(supporters.id, id));
+    return result.count > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
