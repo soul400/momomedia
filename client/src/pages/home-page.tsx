@@ -58,7 +58,7 @@ export default function HomePage() {
             {/* Featured Content Section */}
             <section className="mb-10">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold font-heading">أبرز المحتوى</h2>
+                <h2 className="text-2xl font-bold font-heading">أبرز تصاميم المهره</h2>
                 <Link href="/featured">
                   <a className="text-primary hover:text-primary/80 text-sm flex items-center">
                     عرض الكل
@@ -130,7 +130,7 @@ export default function HomePage() {
             {/* Top Supporters Section */}
             <section className="mb-10">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold font-heading">أبرز الداعمين لهذا الشهر</h2>
+                <h2 className="text-2xl font-bold font-heading">داعمين مصممة المهره للشهر الحالي</h2>
                 <Link href="/supporters">
                   <a className="text-primary hover:text-primary/80 text-sm flex items-center">
                     عرض الكل
@@ -183,9 +183,9 @@ function HeroSection() {
         
         <div className="absolute bottom-0 right-0 p-6 z-20">
           <h2 className="text-3xl md:text-4xl font-bold font-heading text-white mb-2">
-            أبرز لحظات البث المباشر
+            بثوث المهره
           </h2>
-          <p className="text-gray-200 mb-4">استكشف أهم اللحظات والتحديات من بثوث مباشرة</p>
+          <p className="text-gray-200 mb-4">أرشيف تصاميم ولحظات بث مصممة المهره الإبداعية</p>
           <div className="flex space-x-3 space-x-reverse">
             <Button>
               <Play className="ml-2 h-4 w-4" />

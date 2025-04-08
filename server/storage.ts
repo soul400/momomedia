@@ -3,9 +3,9 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
-import { Pool } from "pg";
+import pg from "pg";
 
-const pool = new Pool({
+const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL
 });
 
