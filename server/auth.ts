@@ -15,7 +15,7 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
+export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
   return `${buf.toString("hex")}.${salt}`;
@@ -47,7 +47,12 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
+      // Check if this is the admin user with plain password
+      if (user && user.username === 'admin' && password === user.password) {
+        return done(null, user);
+      }
+      // Normal user with hashed password
+      else if (!user || !(await comparePasswords(password, user.password))) {
         return done(null, false);
       } else {
         return done(null, user);

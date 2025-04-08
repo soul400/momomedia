@@ -58,6 +58,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
 
+  // Create admin user if it doesn't exist
+  try {
+    const adminUser = await storage.getUserByUsername('admin');
+    if (!adminUser) {
+      const { hashPassword } = await import('./auth');
+      await storage.createUser({
+        username: 'admin',
+        password: await hashPassword('adminpassword'), // Set admin password here
+        isAdmin: true
+      });
+      console.log("Admin user created successfully");
+    }
+  } catch (error) {
+    console.error("Error creating admin user:", error);
+  }
+
   // Serve uploaded files
   app.use('/uploads', express.static(uploadsDir));
 

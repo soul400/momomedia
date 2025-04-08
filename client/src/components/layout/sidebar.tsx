@@ -45,8 +45,8 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <div className={cn("w-64 bg-card border-l border-border h-screen sticky top-0 overflow-auto", className)}>
       <div className="p-5 border-b border-border">
-        <h1 className="text-2xl font-bold font-heading text-primary">بلوقر ستريمر</h1>
-        <p className="text-sm text-muted-foreground mt-1">أرشيف اللحظات الممتعة</p>
+        <h1 className="text-2xl font-bold font-heading text-primary">بثوث المهره</h1>
+        <p className="text-sm text-muted-foreground mt-1">أرشيف تصاميم مصممة المهره</p>
       </div>
       
       <nav className="mt-6 px-3">
@@ -67,7 +67,7 @@ export function Sidebar({ className }: SidebarProps) {
             "flex items-center rounded-lg px-3 py-2 text-foreground hover:bg-primary hover:bg-opacity-20 mb-1"
           )}>
             <Medal className="w-5 h-5 ml-2" />
-            <span>أبرز اللحظات</span>
+            <span>أبرز التصاميم</span>
           </a>
         </Link>
         
@@ -77,7 +77,7 @@ export function Sidebar({ className }: SidebarProps) {
             isLinkActive("/supporters") && "bg-primary bg-opacity-20 text-primary"
           )}>
             <Heart className="w-5 h-5 ml-2" />
-            <span>الداعمين المميزين</span>
+            <span>داعمين مصممة المهره</span>
           </a>
         </Link>
         
